@@ -74,6 +74,10 @@ function App() {
 
   const audioRef = useRef<HTMLAudioElement>(new Audio(src));
   const microphoneStreamRef = useRef<MediaStream | undefined>(undefined);
+  const audioContextRef = useRef<AudioContext | undefined>(undefined);
+  const detectBlowIntervalRef = useRef<ReturnType<typeof setInterval> | undefined>(
+    undefined
+  );
 
   const [playing, setPlaying] = useState(false);
   const [paused, setPaused] = useState(false);
@@ -114,6 +118,7 @@ function App() {
   }, []);
 
   const start = useCallback(() => {
+    void audioContextRef.current?.resume();
     startAudio();
     lightCandle();
   }, [lightCandle, startAudio]);
@@ -131,26 +136,42 @@ function App() {
       microphoneStreamRef.current = stream;
 
       const audioContext = new AudioContext();
+      audioContextRef.current = audioContext;
       const source = audioContext.createMediaStreamSource(stream);
       const analyser = audioContext.createAnalyser();
       source.connect(analyser);
-      analyser.fftSize = 2048;
+      analyser.fftSize = 512;
+      analyser.smoothingTimeConstant = 0.2;
 
-      const bufferLength = analyser.frequencyBinCount;
-      const dataArray = new Uint8Array(bufferLength);
+      const timeData = new Uint8Array(analyser.fftSize);
+      const freqData = new Uint8Array(analyser.frequencyBinCount);
 
       const detectBlow = () => {
-        analyser.getByteFrequencyData(dataArray);
-        const average =
-          dataArray.reduce((acc, val) => acc + val, 0) / bufferLength;
-        const threshold = 43;
+        analyser.getByteTimeDomainData(timeData);
+        let sumSquares = 0;
+        for (let i = 0; i < timeData.length; i++) {
+          const sample = (timeData[i] - 128) / 128;
+          sumSquares += sample * sample;
+        }
+        const rms = Math.sqrt(sumSquares / timeData.length);
 
-        if (average > threshold) {
+        analyser.getByteFrequencyData(freqData);
+        let blowSum = 0;
+        const blowBandSize = 32;
+        for (let i = 0; i < blowBandSize; i++) {
+          blowSum += freqData[i];
+        }
+        const blowEnergy = blowSum / blowBandSize;
+
+        const rmsThreshold = 0.04;
+        const blowEnergyThreshold = 18;
+
+        if (rms > rmsThreshold || blowEnergy > blowEnergyThreshold) {
           setCandleVisible(false);
         }
       };
 
-      setInterval(detectBlow, 100);
+      detectBlowIntervalRef.current = setInterval(detectBlow, 50);
     } catch (error) {
       console.error("Error accessing microphone:", error);
     }
@@ -184,7 +205,11 @@ function App() {
     (async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
-          audio: true,
+          audio: {
+            echoCancellation: false,
+            noiseSuppression: false,
+            autoGainControl: false,
+          },
         });
 
         if (stream) {
@@ -196,11 +221,15 @@ function App() {
     })();
 
     return () => {
+      if (detectBlowIntervalRef.current) {
+        clearInterval(detectBlowIntervalRef.current);
+      }
       if (microphoneStreamRef.current) {
         microphoneStreamRef.current
           .getTracks()
           .forEach((track) => track.stop());
       }
+      void audioContextRef.current?.close();
     };
   }, [blowCandles]);
 
