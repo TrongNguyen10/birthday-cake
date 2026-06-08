@@ -185,7 +185,7 @@ function App() {
         const rmsAboveNoise = rms > Math.max(0.055, noiseFloor * 3.5);
         const isWindLike = spectralFlatness > 0.42;
         const isBlowCandidate =
-          rmsAboveNoise && blowEnergy > 26 && isWindLike;
+          rmsAboveNoise && blowEnergy > 22 && isWindLike;
 
         if (isBlowCandidate) {
           blowFrameCount++;
