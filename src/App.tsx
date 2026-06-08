@@ -78,6 +78,7 @@ function App() {
   const detectBlowIntervalRef = useRef<ReturnType<typeof setInterval> | undefined>(
     undefined
   );
+  const candleVisibleRef = useRef(false);
 
   const [playing, setPlaying] = useState(false);
   const [paused, setPaused] = useState(false);
@@ -145,6 +146,10 @@ function App() {
 
       const timeData = new Uint8Array(analyser.fftSize);
       const freqData = new Uint8Array(analyser.frequencyBinCount);
+      const blowBandSize = 32;
+
+      let noiseFloor = 0.01;
+      let blowFrameCount = 0;
 
       const detectBlow = () => {
         analyser.getByteTimeDomainData(timeData);
@@ -157,17 +162,40 @@ function App() {
 
         analyser.getByteFrequencyData(freqData);
         let blowSum = 0;
-        const blowBandSize = 32;
+        let logSum = 0;
         for (let i = 0; i < blowBandSize; i++) {
-          blowSum += freqData[i];
+          const val = Math.max(freqData[i], 1);
+          blowSum += val;
+          logSum += Math.log(val);
         }
         const blowEnergy = blowSum / blowBandSize;
+        const spectralFlatness = Math.exp(logSum / blowBandSize) / blowEnergy;
 
-        const rmsThreshold = 0.04;
-        const blowEnergyThreshold = 18;
+        const isCalm =
+          rms < Math.max(0.035, noiseFloor * 2.5) && blowEnergy < 30;
+        if (isCalm) {
+          noiseFloor = noiseFloor * 0.96 + rms * 0.04;
+        }
 
-        if (rms > rmsThreshold || blowEnergy > blowEnergyThreshold) {
+        if (!candleVisibleRef.current) {
+          blowFrameCount = 0;
+          return;
+        }
+
+        const rmsAboveNoise = rms > Math.max(0.055, noiseFloor * 3.5);
+        const isWindLike = spectralFlatness > 0.42;
+        const isBlowCandidate =
+          rmsAboveNoise && blowEnergy > 26 && isWindLike;
+
+        if (isBlowCandidate) {
+          blowFrameCount++;
+        } else {
+          blowFrameCount = 0;
+        }
+
+        if (blowFrameCount >= 5) {
           setCandleVisible(false);
+          blowFrameCount = 0;
         }
       };
 
@@ -200,6 +228,10 @@ function App() {
       }, 0);
     }
   };
+
+  useEffect(() => {
+    candleVisibleRef.current = candleVisible;
+  }, [candleVisible]);
 
   useEffect(() => {
     (async () => {
