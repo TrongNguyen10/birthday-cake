@@ -7,6 +7,7 @@ import {
   TbFlame,
   TbFlameOff,
   TbShare3,
+  TbHeartFilled,
 } from "react-icons/tb";
 import { useCallback } from "react";
 import { CopyToClipboard } from "react-copy-to-clipboard";
@@ -22,6 +23,8 @@ const buttonStyle = {
   backgroundColor: "#000000",
 };
 
+const GIFT_PAGE_URL = "https://trongnguyen10.github.io/HappyBirthdayGF/";
+
 export const CakeActions = ({
   run,
   start,
@@ -33,7 +36,7 @@ export const CakeActions = ({
   paused,
   candleVisible,
 }: // eslint-disable-next-line @typescript-eslint/no-explicit-any
-any) => {
+  any) => {
   const guide = useCallback(() => setRun(true), [setRun]);
 
   const actions = useCallback(() => {
@@ -79,6 +82,16 @@ any) => {
             <TbShare3 />
           </button>
         </CopyToClipboard>
+        <a
+          id="gift-page"
+          href={GIFT_PAGE_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ ...buttonStyle, textDecoration: "none", padding: "0 1.2em", borderRadius: "8px" }}
+          title="Mở trang quà tặng"
+        >
+          <TbHeartFilled />
+        </a>
       </Fragment>
     );
   }, [
@@ -119,6 +132,16 @@ any) => {
         <button id="share" style={buttonStyle}>
           <TbShare3 />
         </button>
+        <a
+          id="gift-page"
+          href={GIFT_PAGE_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ ...buttonStyle, textDecoration: "none", padding: "0 1.2em", borderRadius: "8px" }}
+          title="Mở trang quà tặng"
+        >
+          <TbHeartFilled />
+        </a>
       </Fragment>
     );
   }, [candleVisible, pause, run, start, stop, toggleLightCandle]);
