@@ -39,6 +39,11 @@ export const CakeActions = ({
   any) => {
   const guide = useCallback(() => setRun(true), [setRun]);
 
+  const openGiftPage = useCallback(() => {
+    stop();
+    window.open(GIFT_PAGE_URL, "_blank", "noopener,noreferrer");
+  }, [stop]);
+
   const actions = useCallback(() => {
     return (
       <Fragment>
@@ -82,21 +87,20 @@ export const CakeActions = ({
             <TbShare3 />
           </button>
         </CopyToClipboard>
-        <a
+        <button
           id="gift-page"
-          href={GIFT_PAGE_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{ ...buttonStyle, textDecoration: "none", padding: "0 1.2em", borderRadius: "8px" }}
+          style={{ ...buttonStyle, padding: "0 1.2em", borderRadius: "8px" }}
+          onClick={openGiftPage}
           title="Mở trang quà tặng"
         >
           <TbHeartFilled />
-        </a>
+        </button>
       </Fragment>
     );
   }, [
     candleVisible,
     guide,
+    openGiftPage,
     pause,
     paused,
     playing,
@@ -132,19 +136,17 @@ export const CakeActions = ({
         <button id="share" style={buttonStyle}>
           <TbShare3 />
         </button>
-        <a
+        <button
           id="gift-page"
-          href={GIFT_PAGE_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{ ...buttonStyle, textDecoration: "none", padding: "0 1.2em", borderRadius: "8px" }}
+          style={{ ...buttonStyle, padding: "0 1.2em", borderRadius: "8px" }}
+          onClick={openGiftPage}
           title="Mở trang quà tặng"
         >
           <TbHeartFilled />
-        </a>
+        </button>
       </Fragment>
     );
-  }, [candleVisible, pause, run, start, stop, toggleLightCandle]);
+  }, [candleVisible, openGiftPage, pause, run, start, stop, toggleLightCandle]);
 
   return (
     <div
